@@ -43,7 +43,7 @@ if PY2:
 VALID_MOTIONS = frozenset(("b", "B", "ge", "gE", "e", "E", "w", "W", "j", "J", "k", "K", "f", "F", "t", "T", "s", "c"))
 MOTIONS_WITH_ARGUMENT = frozenset(("f", "F", "t", "T", "s"))
 FORWARD_MOTIONS = frozenset(("e", "E", "w", "W", "j", "J", "f", "t", "s", "c"))
-BACKWARD_MOTIONS = frozenset(("b", "B", "ge", "gE", "k", "K", "F", "T", "s", "c"))
+BACKWARD_MOTIONS = frozenset(("b", "B", "ge", "gE", "k", "K", "F", "T", "s", "c", "w"))
 LINEWISE_MOTIONS = frozenset(("j", "J", "k", "K"))
 VIOPP_INCREMENT_CURSOR_MOTIONS = frozenset(("e", "E", "ge", "gE", "f", "t"))
 VIOPP_INCREMENT_CURSOR_ON_FORWARD_MOTIONS = frozenset(("s"))
@@ -384,15 +384,10 @@ def handle_user_input(cursor_position, is_in_viopp, target_keys, text, smart_cas
     motion_argument = None
     target = None
     grouped_indices = None
+    motion = 'w'
     try:
         while True:
-            if read_state != ReadState.HIGHLIGHT:
-                next_key = os.read(fd, 80)[:1].decode("ascii")  # blocks until any amount of bytes is available
             if read_state == ReadState.MOTION:
-                if motion is None:
-                    motion = next_key
-                else:
-                    motion += next_key
                 if motion != "g":  # `g` always needs a second key press
                     if motion not in VALID_MOTIONS:
                         raise InvalidMotionError('The key "{}" is no valid motion.'.format(motion))
@@ -400,11 +395,8 @@ def handle_user_input(cursor_position, is_in_viopp, target_keys, text, smart_cas
                         read_state = ReadState.MOTION_ARGUMENT
                     else:
                         read_state = ReadState.HIGHLIGHT
-            elif read_state == ReadState.MOTION_ARGUMENT:
-                motion_argument = next_key
-                read_state = ReadState.HIGHLIGHT
             elif read_state == ReadState.TARGET:
-                target = next_key
+                target = os.read(fd, 80)[:1].decode("ascii")  # blocks until any amount of bytes is available
                 if target not in target_keys:
                     raise InvalidTargetError('The key "{}" is no valid target.'.format(target))
                 read_state = ReadState.HIGHLIGHT
